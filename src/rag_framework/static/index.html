@@ -140,6 +140,7 @@
                 <p class="panel-kicker">Synthesis</p>
                 <h2 id="answer-title">Ready</h2>
               </div>
+              <span id="judge-badge" class="judge-badge disabled">Judge disabled</span>
             </div>
             <div id="answer" class="answer-text">
               Submit a query to inspect the retrieved context, ranking signals, and corrective decisions.
@@ -154,6 +155,18 @@
               </div>
             </div>
             <div id="sources" class="sources-grid"></div>
+          </section>
+
+          <section class="judge-panel" aria-labelledby="judge-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="panel-kicker">Trust Layer</p>
+                <h2 id="judge-title">Faithfulness Review</h2>
+              </div>
+            </div>
+            <div id="judge-review" class="judge-review">
+              <div class="empty-state">Run a query to see judge feedback.</div>
+            </div>
           </section>
         </section>
 
@@ -211,6 +224,11 @@
                   <span>Answer</span>
                   <small>LLM answers from the selected context.</small>
                 </div>
+                <div class="process-link">Judge</div>
+                <div class="process-step decision">
+                  <span>Faithfulness</span>
+                  <small>Validate answer against retrieved evidence.</small>
+                </div>
               </div>
             </article>
 
@@ -245,6 +263,7 @@
                     </div>
                   </div>
                 </div>
+                <div class="process-link">Judge final answer</div>
               </div>
             </article>
 
@@ -268,6 +287,11 @@
                 <div class="process-step">
                   <span>Synthesize</span>
                   <small>One cited answer from fused evidence.</small>
+                </div>
+                <div class="process-link">Judge</div>
+                <div class="process-step decision">
+                  <span>Faithfulness</span>
+                  <small>Check unsupported claims and citations.</small>
                 </div>
               </div>
             </article>
