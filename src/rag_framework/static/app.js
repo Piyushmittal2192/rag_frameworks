@@ -4,10 +4,12 @@ const topKInput = document.querySelector("#top-k");
 const submitButton = document.querySelector("#submit-button");
 const answerTitle = document.querySelector("#answer-title");
 const answer = document.querySelector("#answer");
+const judgeBadge = document.querySelector("#judge-badge");
 const pipelineBadge = document.querySelector("#pipeline-badge");
 const observability = document.querySelector("#observability");
 const steps = document.querySelector("#steps");
 const sources = document.querySelector("#sources");
+const judgeReview = document.querySelector("#judge-review");
 const pipelineInputs = document.querySelectorAll('input[name="pipeline"]');
 const defaultQuestionButtons = document.querySelectorAll(".default-question");
 
@@ -80,6 +82,7 @@ function setLoading(pipeline) {
   answerTitle.textContent = "Running";
   pipelineBadge.textContent = pipeline;
   answer.textContent = "Retrieving context...";
+  renderJudge(null);
   observability.innerHTML = '<div class="empty-state">Trace running...</div>';
   steps.innerHTML = "";
   sources.innerHTML = "";
@@ -97,6 +100,7 @@ function setError(message) {
   answerTitle.textContent = "Error";
   pipelineBadge.textContent = "stopped";
   answer.textContent = message;
+  renderJudge(null);
   observability.innerHTML = "";
   steps.innerHTML = "";
   sources.innerHTML = "";
@@ -106,6 +110,7 @@ function renderResult(result) {
   answerTitle.textContent = getAnswerTitle(result);
   pipelineBadge.textContent = result.pipeline;
   answer.textContent = result.answer || "No answer returned.";
+  renderJudge(result.judge || null);
   renderObservability(result.trace);
   renderSteps(result.steps || []);
   renderSources(result.sources || []);
@@ -137,8 +142,18 @@ function renderObservability(trace) {
     ["Best Score", formatNumber(trace.best_score)],
     ["Mean Score", formatNumber(trace.mean_score)],
     ["Correction", trace.correction_applied ? "Applied" : "Not applied"],
+    ["Judge", trace.judge_enabled ? "Enabled" : "Disabled"],
     ["Reranker", trace.reranker_enabled ? "Enabled" : "Disabled"],
   ];
+  if (trace.judge_model) {
+    metrics.push(["Judge Model", trace.judge_model]);
+  }
+  if (trace.judge_verdict) {
+    metrics.push(["Verdict", trace.judge_verdict]);
+  }
+  if (trace.faithfulness_score !== null && trace.faithfulness_score !== undefined) {
+    metrics.push(["Faithfulness", formatNumber(trace.faithfulness_score)]);
+  }
   if (trace.reranker_model) {
     metrics.push(["Reranker Model", trace.reranker_model]);
   }
@@ -153,6 +168,50 @@ function renderObservability(trace) {
       `
     )
     .join("");
+}
+
+function renderJudge(judge) {
+  if (!judge) {
+    judgeBadge.textContent = "Judge disabled";
+    judgeBadge.className = "judge-badge disabled";
+    judgeReview.innerHTML = '<div class="empty-state">No faithfulness verdict returned.</div>';
+    return;
+  }
+
+  const verdict = judge.verdict || "unknown";
+  const score = formatNumber(judge.faithfulness_score || 0);
+  judgeBadge.textContent = `${labelize(verdict)} · ${score}`;
+  judgeBadge.className = `judge-badge ${verdict}`;
+
+  judgeReview.innerHTML = `
+    <div class="judge-summary ${escapeHtml(verdict)}">
+      <div>
+        <span class="metric-label">Verdict</span>
+        <strong>${escapeHtml(labelize(verdict))}</strong>
+      </div>
+      <div>
+        <span class="metric-label">Faithfulness</span>
+        <strong>${score}</strong>
+      </div>
+    </div>
+    <div class="judge-detail">
+      <h3>Unsupported Claims</h3>
+      ${renderJudgeList(judge.unsupported_claims)}
+    </div>
+    <div class="judge-detail">
+      <h3>Citation Issues</h3>
+      ${renderJudgeList(judge.citation_issues)}
+    </div>
+    <p>${escapeHtml(judge.reason || "No judge explanation returned.")}</p>
+  `;
+}
+
+function renderJudgeList(items) {
+  const values = (items || []).filter((item) => item && item !== "none");
+  if (!values.length) {
+    return '<div class="empty-state compact">None</div>';
+  }
+  return `<ul>${values.map((item) => `<li>${escapeHtml(String(item))}</li>`).join("")}</ul>`;
 }
 
 function renderSteps(items) {
@@ -246,4 +305,10 @@ function formatNumber(value) {
     return number.toFixed(1);
   }
   return number.toFixed(3);
+}
+
+function labelize(value) {
+  return String(value || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
