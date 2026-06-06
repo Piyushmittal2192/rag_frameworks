@@ -69,6 +69,7 @@ input {
 .quick-context,
 .answer-panel,
 .sources-band,
+.judge-panel,
 .observability-panel,
 .steps-panel,
 .diagram-band,
@@ -464,6 +465,43 @@ input:focus {
   text-transform: uppercase;
 }
 
+.judge-badge {
+  justify-self: end;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--muted);
+  background: rgba(2, 8, 14, 0.7);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.judge-badge.grounded {
+  border-color: rgba(97, 232, 178, 0.42);
+  color: var(--mint);
+  background: rgba(97, 232, 178, 0.12);
+}
+
+.judge-badge.partially_grounded {
+  border-color: rgba(255, 209, 102, 0.42);
+  color: var(--amber);
+  background: rgba(255, 209, 102, 0.12);
+}
+
+.judge-badge.unsupported {
+  border-color: rgba(255, 93, 93, 0.42);
+  color: #ff8f8f;
+  background: rgba(255, 93, 93, 0.12);
+}
+
+.judge-badge.judge_error,
+.judge-badge.disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .answer-panel {
   min-height: 420px;
 }
@@ -586,6 +624,68 @@ input:focus {
 
 .sources-band {
   min-height: 360px;
+}
+
+.judge-panel {
+  min-height: 220px;
+}
+
+.judge-review {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.judge-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.judge-summary > div,
+.judge-detail {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(5, 14, 23, 0.72);
+}
+
+.judge-summary strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.judge-summary.grounded > div {
+  border-color: rgba(97, 232, 178, 0.28);
+}
+
+.judge-summary.partially_grounded > div {
+  border-color: rgba(255, 209, 102, 0.28);
+}
+
+.judge-summary.unsupported > div {
+  border-color: rgba(255, 93, 93, 0.28);
+}
+
+.judge-detail h3 {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.judge-detail ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+}
+
+.judge-review p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .sources-grid {
@@ -865,6 +965,10 @@ input:focus {
 .empty-state {
   padding: 16px;
   color: var(--muted);
+}
+
+.empty-state.compact {
+  padding: 0;
 }
 
 @media (max-width: 1320px) {
