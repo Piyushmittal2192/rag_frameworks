@@ -23,6 +23,19 @@ class PlannerLLM:
         return "planned final answer"
 
 
+class StaticJudge:
+    async def evaluate(self, question, answer, sources):
+        from rag_framework.models import JudgeResult
+
+        return JudgeResult(
+            verdict="grounded",
+            faithfulness_score=0.97,
+            unsupported_claims=[],
+            citation_issues=[],
+            reason="Test judge result.",
+        )
+
+
 @pytest.mark.asyncio
 async def test_standard_pipeline_returns_sources():
     chunks = [DocumentChunk(id="1", text="RAG uses retrieved context.", source="rag.txt")]
@@ -35,6 +48,20 @@ async def test_standard_pipeline_returns_sources():
     assert answer.pipeline == "standard"
     assert answer.sources[0].chunk.source == "rag.txt"
     assert "Echo response" not in answer.answer
+
+
+@pytest.mark.asyncio
+async def test_standard_pipeline_attaches_judge_result_when_enabled():
+    chunks = [DocumentChunk(id="1", text="RAG uses retrieved context.", source="rag.txt")]
+    embedder = TfidfEmbedder()
+    store = VectorStore.build(chunks, embedder)
+    pipeline = StandardRAGPipeline(store, embedder, EchoLLM(), top_k=1, judge=StaticJudge())
+
+    answer = await pipeline.answer("What does RAG use?")
+
+    assert answer.judge is not None
+    assert answer.judge.verdict == "grounded"
+    assert any(step.name == "LLM Judge" and step.status == "completed" for step in answer.steps)
 
 
 @pytest.mark.asyncio
