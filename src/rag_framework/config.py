@@ -41,6 +41,11 @@ class Settings(BaseSettings):
         default="cross-encoder/ms-marco-MiniLM-L-6-v2",
         validation_alias="RERANKER_MODEL",
     )
+    enable_llm_judge: bool = Field(default=False, validation_alias="ENABLE_LLM_JUDGE")
+    judge_provider: str | None = Field(default=None, validation_alias="JUDGE_PROVIDER")
+    judge_model: str | None = Field(default=None, validation_alias="JUDGE_MODEL")
+    judge_base_url: str | None = Field(default=None, validation_alias="JUDGE_BASE_URL")
+    judge_api_key: str | None = Field(default=None, validation_alias="JUDGE_API_KEY")
 
 
 @lru_cache
