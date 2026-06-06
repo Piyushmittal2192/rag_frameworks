@@ -93,6 +93,8 @@ class EchoLLM:
     """Deterministic local demo LLM used when no external model server is running."""
 
     async def generate(self, prompt: str) -> str:
+        if "You are a strict RAG faithfulness judge" in prompt:
+            return _judge_faithfulness(prompt)
         if "Break the question into focused search sub-questions" in prompt:
             return _decompose_question(prompt)
         if "Return only \"relevant\" or \"irrelevant\"" in prompt:
@@ -187,6 +189,34 @@ def _decompose_question(prompt: str) -> str:
     if len(sub_questions) <= 1:
         return question
     return "\n".join(f"{index}. {part}?" for index, part in enumerate(sub_questions[:4], start=1))
+
+
+def _judge_faithfulness(prompt: str) -> str:
+    answer_match = re.search(r"Generated answer:\s*(.+?)\n\nReturn JSON", prompt, re.DOTALL)
+    context_match = re.search(r"Retrieved context:\s*(.+?)\n\nGenerated answer:", prompt, re.DOTALL)
+    answer = answer_match.group(1) if answer_match else ""
+    context = context_match.group(1) if context_match else ""
+    unsupported = []
+    answer_terms = _keywords(answer)
+    context_terms = _keywords(context)
+    if answer_terms and not answer_terms.intersection(context_terms):
+        unsupported.append("The answer does not appear to overlap with retrieved context.")
+    score = 0.35 if unsupported else 0.95
+    verdict = "unsupported" if unsupported else "grounded"
+    return (
+        "{"
+        f"\"verdict\":\"{verdict}\","
+        f"\"faithfulness_score\":{score},"
+        f"\"unsupported_claims\":{json_list(unsupported)},"
+        "\"citation_issues\":[],"
+        "\"reason\":\"Deterministic demo judge compared answer terms with retrieved context.\""
+        "}"
+    )
+
+
+def json_list(values: list[str]) -> str:
+    escaped = [value.replace("\\", "\\\\").replace('"', '\\"') for value in values]
+    return "[" + ",".join(f'"{value}"' for value in escaped) + "]"
 
 
 def _keywords(text: str) -> set[str]:
