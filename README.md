@@ -106,6 +106,30 @@ export RERANKER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
 
 The reranker directly scores query/chunk relevance after hybrid retrieval, then returns the final top K chunks.
 
+## Faithfulness Judge
+
+The app can run an optional secondary LLM-as-judge after answer generation. The judge receives the original question, retrieved context, and generated answer, then returns a faithfulness verdict:
+
+```text
+generated answer
+  -> judge against retrieved context
+  -> grounded / partially_grounded / unsupported
+  -> unsupported claims + citation issues
+```
+
+Enable it with:
+
+```bash
+export ENABLE_LLM_JUDGE=true
+export JUDGE_PROVIDER=github-models
+export JUDGE_MODEL=meta/meta-llama-3.1-8b-instruct
+export JUDGE_BASE_URL=https://models.github.ai/inference
+```
+
+If `JUDGE_PROVIDER` or `JUDGE_MODEL` are omitted, the judge falls back to the main LLM provider and model. The UI shows the judge verdict in the answer panel, run metadata, execution timeline, and Faithfulness Review panel.
+
+LLM judges are a useful trust signal, not a mathematical proof. For production use, combine judge scores with retrieval evals, citation checks, and curated regression datasets.
+
 ## Planner RAG
 
 Planner RAG is useful for broader or multi-part questions where one search query is likely too compressed:
@@ -221,6 +245,8 @@ Important settings:
 - `LLM_MODEL`: model name for the selected provider.
 - `GITHUB_TOKEN`: token for GitHub Models when using `LLM_PROVIDER=github-models`.
 - `RELEVANCE_THRESHOLD`: score floor used by corrective RAG.
+- `ENABLE_LLM_JUDGE`: run a secondary judge after answer generation.
+- `JUDGE_PROVIDER`, `JUDGE_MODEL`, `JUDGE_BASE_URL`: optional independent judge model settings.
 
 ## Docker
 
