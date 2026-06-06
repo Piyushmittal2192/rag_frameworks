@@ -4,6 +4,7 @@ from time import perf_counter
 import numpy as np
 
 from rag_framework.embeddings import Embedder
+from rag_framework.judges import Judge
 from rag_framework.llms import LLM
 from rag_framework.models import Answer, PipelineStep, SearchResult
 from rag_framework.prompts import ANSWER_PROMPT, DECOMPOSE_PROMPT, GRADE_PROMPT, REWRITE_PROMPT
@@ -19,12 +20,14 @@ class StandardRAGPipeline:
         llm: LLM,
         top_k: int = 5,
         reranker: Reranker | None = None,
+        judge: Judge | None = None,
     ) -> None:
         self.store = store
         self.embedder = embedder
         self.llm = llm
         self.top_k = top_k
         self.reranker = reranker
+        self.judge = judge
 
     async def answer(self, question: str) -> Answer:
         started = perf_counter()
@@ -39,7 +42,7 @@ class StandardRAGPipeline:
         response = await self.llm.generate(prompt)
         generate_ms = _elapsed_ms(started)
 
-        return Answer(
+        answer = Answer(
             question=question,
             answer=response,
             sources=results,
@@ -74,6 +77,39 @@ class StandardRAGPipeline:
                 ),
             ],
         )
+        return await self._run_judge(answer)
+
+    async def _run_judge(self, answer: Answer) -> Answer:
+        if self.judge is None:
+            answer.steps.append(
+                PipelineStep(
+                    name="LLM Judge",
+                    status="skipped",
+                    description="Faithfulness judge is disabled for this run.",
+                    details={"judge_enabled": False},
+                )
+            )
+            return answer
+
+        started = perf_counter()
+        judge_result = await self.judge.evaluate(answer.question, answer.answer, answer.sources)
+        judge_ms = _elapsed_ms(started)
+        answer.judge = judge_result
+        answer.steps.append(
+            PipelineStep(
+                name="LLM Judge",
+                status="completed" if judge_result.verdict != "judge_error" else "warning",
+                description="Checked the generated answer against the retrieved context.",
+                duration_ms=judge_ms,
+                details={
+                    "verdict": judge_result.verdict,
+                    "faithfulness_score": judge_result.faithfulness_score,
+                    "unsupported_claims": judge_result.unsupported_claims or ["none"],
+                    "citation_issues": judge_result.citation_issues or ["none"],
+                },
+            )
+        )
+        return answer
 
 
 class CorrectiveRAGPipeline(StandardRAGPipeline):
@@ -88,8 +124,16 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
         rewrite_evidence_margin: float = 0.05,
         reranker_evidence_threshold: float = 0.0,
         reranker: Reranker | None = None,
+        judge: Judge | None = None,
     ) -> None:
-        super().__init__(store=store, embedder=embedder, llm=llm, top_k=top_k, reranker=reranker)
+        super().__init__(
+            store=store,
+            embedder=embedder,
+            llm=llm,
+            top_k=top_k,
+            reranker=reranker,
+            judge=judge,
+        )
         self.relevance_threshold = relevance_threshold
         self.rewrite_intent_threshold = rewrite_intent_threshold
         self.rewrite_evidence_margin = rewrite_evidence_margin
@@ -262,7 +306,7 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
                 ),
             ]
         )
-        return Answer(
+        answer = Answer(
             question=question,
             answer=response,
             sources=context_results,
@@ -271,6 +315,7 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
             rewritten_query=rewritten_query,
             correction_applied=correction_applied,
         )
+        return await self._run_judge(answer)
 
     async def _rewrite_query(self, question: str) -> str:
         rewritten = await self.llm.generate(REWRITE_PROMPT.format(question=question))
@@ -338,8 +383,16 @@ class PlannerRAGPipeline(StandardRAGPipeline):
         top_k: int = 5,
         max_sub_questions: int = 4,
         reranker: Reranker | None = None,
+        judge: Judge | None = None,
     ) -> None:
-        super().__init__(store=store, embedder=embedder, llm=llm, top_k=top_k, reranker=reranker)
+        super().__init__(
+            store=store,
+            embedder=embedder,
+            llm=llm,
+            top_k=top_k,
+            reranker=reranker,
+            judge=judge,
+        )
         self.max_sub_questions = max_sub_questions
 
     async def answer(self, question: str) -> Answer:
@@ -430,13 +483,14 @@ class PlannerRAGPipeline(StandardRAGPipeline):
             ]
         )
 
-        return Answer(
+        answer = Answer(
             question=question,
             answer=response,
             sources=fused_results,
             pipeline="planner",
             steps=steps,
         )
+        return await self._run_judge(answer)
 
     async def _decompose_question(self, question: str) -> list[str]:
         prompt = DECOMPOSE_PROMPT.format(
