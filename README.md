@@ -13,6 +13,10 @@ The LLM layer uses open-source-friendly interfaces:
 - `openai-compatible` for vLLM, llama.cpp server, LM Studio, Text Generation Inference gateways, and similar local/open-source servers.
 - `github-models` for GitHub Models hosted chat completions.
 
+## Documentation
+
+For learning guides, architecture notes, ML design, and pipeline diagrams, see [documentation/README.md](documentation/README.md).
+
 ## Project Layout
 
 ```text
