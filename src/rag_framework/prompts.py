@@ -40,3 +40,38 @@ Question:
 
 Sub-questions:
 """
+
+JUDGE_PROMPT = """You are a strict RAG faithfulness judge.
+Decide whether the generated answer is fully supported by the retrieved context.
+
+Rules:
+- Judge only factual support from the provided context.
+- Do not use outside knowledge.
+- Penalize claims that are not directly supported by the context.
+- Penalize citations that do not support the cited claim.
+- If the context is insufficient and the answer still makes factual claims, mark it unsupported.
+- Return strict JSON only, with no markdown.
+
+Valid verdicts:
+- grounded
+- partially_grounded
+- unsupported
+
+Question:
+{question}
+
+Retrieved context:
+{context}
+
+Generated answer:
+{answer}
+
+Return JSON with this schema:
+{{
+  "verdict": "grounded",
+  "faithfulness_score": 1.0,
+  "unsupported_claims": [],
+  "citation_issues": [],
+  "reason": "Short explanation."
+}}
+"""
