@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RAG Framework</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="command-header">
+        <div class="identity-lockup">
+          <div class="brand-mark" aria-hidden="true">R</div>
+          <div>
+            <p class="eyebrow">Retrieval Intelligence Console</p>
+            <h1 id="app-title">RAG Framework</h1>
+          </div>
+        </div>
+        <div class="system-strip" aria-label="Runtime status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>Local Runtime</span>
+          <span class="strip-separator"></span>
+          <span>GitHub Models</span>
+          <span class="strip-separator"></span>
+          <span>Hybrid Retrieval</span>
+        </div>
+      </header>
+
+      <section class="mission-grid" aria-labelledby="app-title">
+        <aside class="control-deck">
+          <form id="query-form" class="query-form">
+            <div class="section-heading">
+              <div>
+                <p class="panel-kicker">Command</p>
+                <h2>Query Control</h2>
+              </div>
+              <span id="pipeline-badge" class="badge">corrective</span>
+            </div>
+
+            <label for="question">Question</label>
+            <textarea
+              id="question"
+              name="question"
+              rows="7"
+              autocomplete="off"
+              spellcheck="true"
+            >How do I build the search files?</textarea>
+
+            <div class="controls-row">
+              <fieldset class="segmented-control" aria-label="Pipeline">
+                <label>
+                  <input type="radio" name="pipeline" value="standard" />
+                  <span>Standard</span>
+                </label>
+                <label>
+                  <input type="radio" name="pipeline" value="corrective" checked />
+                  <span>Corrective</span>
+                </label>
+                <label>
+                  <input type="radio" name="pipeline" value="planner" />
+                  <span>Planner</span>
+                </label>
+              </fieldset>
+
+              <label class="top-k-control" for="top-k">
+                Top K
+                <input id="top-k" name="top_k" type="number" min="1" max="12" value="5" />
+              </label>
+            </div>
+
+            <section class="default-questions" aria-label="Default questions">
+              <p>Default questions</p>
+              <button
+                type="button"
+                class="default-question"
+                data-pipeline="standard"
+                data-question="What open source LLM interfaces are supported?"
+              >
+                <span>Standard</span>
+                What open source LLM interfaces are supported?
+              </button>
+              <button
+                type="button"
+                class="default-question"
+                data-pipeline="corrective"
+                data-question="How do I build the search files?"
+              >
+                <span>Corrective</span>
+                How do I build the search files?
+              </button>
+              <button
+                type="button"
+                class="default-question"
+                data-pipeline="planner"
+                data-question="Compare Standard RAG, Corrective RAG, and Planner RAG."
+              >
+                <span>Planner</span>
+                Compare Standard RAG, Corrective RAG, and Planner RAG.
+              </button>
+            </section>
+
+            <button type="submit" id="submit-button">
+              <span aria-hidden="true">↗</span>
+              Execute Retrieval
+            </button>
+          </form>
+
+          <section class="quick-context" aria-label="Current knowledge base">
+            <p class="panel-kicker">Corpus</p>
+            <h2>Indexed Knowledge</h2>
+            <dl class="context-list">
+              <div>
+                <dt>Documents</dt>
+                <dd>51</dd>
+              </div>
+              <div>
+                <dt>Index</dt>
+                <dd>data/index</dd>
+              </div>
+              <div>
+                <dt>Retrieval</dt>
+                <dd>Vector + BM25 + RRF</dd>
+              </div>
+              <div>
+                <dt>Planning</dt>
+                <dd>Dynamic decomposition</dd>
+              </div>
+              <div>
+                <dt>Reranker</dt>
+                <dd>MiniLM Cross-Encoder</dd>
+              </div>
+            </dl>
+          </section>
+        </aside>
+
+        <section class="primary-workspace">
+          <section class="answer-panel">
+            <div class="section-heading">
+              <div>
+                <p class="panel-kicker">Synthesis</p>
+                <h2 id="answer-title">Ready</h2>
+              </div>
+            </div>
+            <div id="answer" class="answer-text">
+              Submit a query to inspect the retrieved context, ranking signals, and corrective decisions.
+            </div>
+          </section>
+
+          <section class="sources-band" aria-labelledby="sources-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="panel-kicker">Evidence Matrix</p>
+                <h2 id="sources-title">Retrieved Sources</h2>
+              </div>
+            </div>
+            <div id="sources" class="sources-grid"></div>
+          </section>
+        </section>
+
+        <aside class="telemetry-rail">
+          <section class="observability-panel" aria-labelledby="observability-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="panel-kicker">Telemetry</p>
+                <h2 id="observability-title">Run Metadata</h2>
+              </div>
+            </div>
+            <div id="observability" class="metrics-grid">
+              <div class="empty-state">No trace yet.</div>
+            </div>
+          </section>
+
+          <section class="steps-panel" aria-labelledby="steps-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="panel-kicker">Trace</p>
+                <h2 id="steps-title">Execution Timeline</h2>
+              </div>
+            </div>
+            <ol id="steps" class="steps-list"></ol>
+          </section>
+        </aside>
+      </section>
+
+      <section class="intelligence-grid">
+        <section class="diagram-band" aria-labelledby="diagrams-title">
+          <div class="section-heading compact">
+            <div>
+              <p class="panel-kicker">System Map</p>
+              <h2 id="diagrams-title">Pipeline Topology</h2>
+            </div>
+          </div>
+          <div class="diagram-grid">
+            <article class="diagram-card">
+              <div class="diagram-heading">
+                <span class="diagram-index">01</span>
+                <h3>Standard RAG</h3>
+              </div>
+              <div class="process-diagram" aria-label="Standard RAG process diagram">
+                <div class="process-step">
+                  <span>Question</span>
+                  <small>User query enters the retriever.</small>
+                </div>
+                <div class="process-link">Hybrid search</div>
+                <div class="process-step split">
+                  <span>Vector + BM25</span>
+                  <small>Dense and sparse matches are merged with RRF.</small>
+                </div>
+                <div class="process-link">Rerank</div>
+                <div class="process-step">
+                  <span>Answer</span>
+                  <small>LLM answers from the selected context.</small>
+                </div>
+              </div>
+            </article>
+
+            <article class="diagram-card">
+              <div class="diagram-heading">
+                <span class="diagram-index">02</span>
+                <h3>Corrective RAG</h3>
+              </div>
+              <div class="process-diagram corrective-flow" aria-label="Corrective RAG process diagram">
+                <div class="process-step">
+                  <span>Initial Retrieval</span>
+                  <small>Hybrid search returns candidate chunks.</small>
+                </div>
+                <div class="process-link">Grade context</div>
+                <div class="process-step decision">
+                  <span>Evidence Gate</span>
+                  <small>Check relevance and reranker evidence.</small>
+                </div>
+                <div class="branch-grid">
+                  <div class="branch-path">
+                    <span class="branch-label pass">Strong</span>
+                    <div class="process-step compact">
+                      <span>Generate</span>
+                      <small>Use initial context.</small>
+                    </div>
+                  </div>
+                  <div class="branch-path">
+                    <span class="branch-label warn">Weak</span>
+                    <div class="process-step compact">
+                      <span>Rewrite + Retry</span>
+                      <small>Accept only if intent and evidence improve.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="diagram-card">
+              <div class="diagram-heading">
+                <span class="diagram-index">03</span>
+                <h3>Planner RAG</h3>
+              </div>
+              <div class="process-diagram" aria-label="Planner RAG process diagram">
+                <div class="process-step">
+                  <span>Question</span>
+                  <small>Broad or multi-part query arrives.</small>
+                </div>
+                <div class="process-link">Decompose</div>
+                <div class="subtask-stack" aria-label="Generated sub-questions">
+                  <span>Sub-query A</span>
+                  <span>Sub-query B</span>
+                  <span>Sub-query C</span>
+                </div>
+                <div class="process-link">Retrieve + fuse</div>
+                <div class="process-step">
+                  <span>Synthesize</span>
+                  <small>One cited answer from fused evidence.</small>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="decision-band" aria-labelledby="decision-title">
+          <div class="section-heading compact">
+            <div>
+              <p class="panel-kicker">Corrective Policy</p>
+              <h2 id="decision-title">Rewrite Quality Gates</h2>
+            </div>
+          </div>
+          <div class="decision-grid">
+            <article class="decision-card">
+              <span class="decision-number">01</span>
+              <h3>Intent Preservation</h3>
+              <p>The rewrite must preserve meaning using embedding similarity, key-term retention, and polarity checks.</p>
+            </article>
+            <article class="decision-card">
+              <span class="decision-number">02</span>
+              <h3>Evidence Improvement</h3>
+              <p>The rewritten query must improve retrieved evidence after hybrid retrieval, RRF fusion, and reranking.</p>
+            </article>
+            <article class="decision-card">
+              <span class="decision-number">03</span>
+              <h3>Safe Fallback</h3>
+              <p>If either gate fails, the rewrite is rejected and the system returns to the initial retrieval path.</p>
+            </article>
+            <article class="decision-card">
+              <span class="decision-number">04</span>
+              <h3>Task Planning</h3>
+              <p>Planner RAG decomposes broad questions, retrieves evidence per sub-question, fuses it, and answers once.</p>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
