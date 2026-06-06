@@ -37,6 +37,18 @@ class TraceMetadata(BaseModel):
     mean_score: float
     reranker_enabled: bool = False
     reranker_model: str | None = None
+    judge_enabled: bool = False
+    judge_model: str | None = None
+    judge_verdict: str | None = None
+    faithfulness_score: float | None = None
+
+
+class JudgeResult(BaseModel):
+    verdict: str
+    faithfulness_score: float
+    unsupported_claims: list[str] = Field(default_factory=list)
+    citation_issues: list[str] = Field(default_factory=list)
+    reason: str
 
 
 class Answer(BaseModel):
@@ -46,5 +58,6 @@ class Answer(BaseModel):
     pipeline: str
     steps: list[PipelineStep] = Field(default_factory=list)
     trace: TraceMetadata | None = None
+    judge: JudgeResult | None = None
     rewritten_query: str | None = None
     correction_applied: bool = False
