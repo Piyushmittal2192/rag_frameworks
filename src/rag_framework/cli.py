@@ -4,6 +4,7 @@ import typer
 
 from rag_framework.config import get_settings
 from rag_framework.embeddings import SentenceTransformerEmbedder
+from rag_framework.judges import LLMFaithfulnessJudge
 from rag_framework.llms import create_llm
 from rag_framework.loaders import load_documents
 from rag_framework.pipelines import CorrectiveRAGPipeline, PlannerRAGPipeline, StandardRAGPipeline
@@ -56,6 +57,15 @@ async def _ask(question: str, pipeline_name: str, index: Path | None) -> None:
         if settings.enable_reranker
         else None
     )
+    judge_llm = None
+    if settings.enable_llm_judge:
+        judge_llm = create_llm(
+            provider=settings.judge_provider or settings.llm_provider,
+            model=settings.judge_model or settings.llm_model,
+            base_url=settings.judge_base_url or settings.llm_base_url,
+            api_key=settings.judge_api_key or settings.llm_api_key or settings.github_token,
+        )
+    judge = LLMFaithfulnessJudge(judge_llm) if judge_llm is not None else None
     if pipeline_name == "corrective":
         pipeline = CorrectiveRAGPipeline(
             store,
@@ -67,17 +77,37 @@ async def _ask(question: str, pipeline_name: str, index: Path | None) -> None:
             rewrite_evidence_margin=settings.rewrite_evidence_margin,
             reranker_evidence_threshold=settings.reranker_evidence_threshold,
             reranker=reranker,
+            judge=judge,
         )
     elif pipeline_name == "planner":
-        pipeline = PlannerRAGPipeline(store, embedder, llm, top_k=settings.top_k, reranker=reranker)
+        pipeline = PlannerRAGPipeline(
+            store,
+            embedder,
+            llm,
+            top_k=settings.top_k,
+            reranker=reranker,
+            judge=judge,
+        )
     else:
-        pipeline = StandardRAGPipeline(store, embedder, llm, top_k=settings.top_k, reranker=reranker)
+        pipeline = StandardRAGPipeline(
+            store,
+            embedder,
+            llm,
+            top_k=settings.top_k,
+            reranker=reranker,
+            judge=judge,
+        )
 
     result = await pipeline.answer(question)
     typer.echo(result.answer)
     typer.echo("\nSources:")
     for source in result.sources:
         typer.echo(f"- {source.chunk.source} chunk {source.chunk.metadata.get('chunk', 0)} ({source.score:.3f})")
+    if result.judge:
+        typer.echo(
+            f"\nFaithfulness: {result.judge.verdict} "
+            f"({result.judge.faithfulness_score:.2f})"
+        )
 
 
 if __name__ == "__main__":
