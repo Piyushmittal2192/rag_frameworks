@@ -5,15 +5,16 @@ from time import perf_counter
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from rag_framework.config import get_settings
 from rag_framework.embeddings import SentenceTransformerEmbedder
 from rag_framework.judges import LLMFaithfulnessJudge
 from rag_framework.llms import create_llm
+from rag_framework.memory import MemoryManager, summarize_preferences
 from rag_framework.models import TraceMetadata
 from rag_framework.pipelines import CorrectiveRAGPipeline, PlannerRAGPipeline, StandardRAGPipeline
 from rag_framework.rerankers import CrossEncoderReranker
@@ -24,6 +25,10 @@ class QueryRequest(BaseModel):
     question: str
     pipeline: Literal["standard", "corrective", "planner"] = "standard"
     top_k: int | None = None
+    memory_mode: Literal["stateless", "stateful"] = "stateless"
+    user_id: str | None = None
+    session_preferences: dict[str, str] = Field(default_factory=dict)
+    remember_preferences: bool = False
 
 
 class AppState:
@@ -36,6 +41,7 @@ class AppState:
     reranker_model: str | None
     judge_enabled: bool
     judge_model: str | None
+    memory: MemoryManager
 
 
 state = AppState()
@@ -105,6 +111,7 @@ async def lifespan(app: FastAPI):
         if settings.enable_llm_judge
         else None
     )
+    state.memory = MemoryManager(settings.memory_store_path)
     yield
 
 
@@ -130,13 +137,22 @@ async def query(request: QueryRequest):
         "planner": state.planner,
     }
     pipeline = pipelines[request.pipeline]
+    try:
+        personalization = state.memory.build_context(
+            mode=request.memory_mode,
+            user_id=request.user_id,
+            session_preferences=request.session_preferences,
+            remember_preferences=request.remember_preferences,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     original_top_k = pipeline.top_k
     if request.top_k is not None:
         pipeline.top_k = request.top_k
     started_at = datetime.now(timezone.utc)
     timer = perf_counter()
     try:
-        answer = await pipeline.answer(request.question)
+        answer = await pipeline.answer(request.question, personalization=personalization)
         answer.trace = TraceMetadata(
             trace_id=str(uuid4()),
             started_at=started_at.isoformat(),
@@ -158,6 +174,11 @@ async def query(request: QueryRequest):
             judge_model=state.judge_model,
             judge_verdict=answer.judge.verdict if answer.judge else None,
             faithfulness_score=answer.judge.faithfulness_score if answer.judge else None,
+            memory_mode=personalization.mode,
+            memory_user_id=personalization.user_id,
+            memory_loaded=personalization.memory_loaded,
+            memory_saved=personalization.memory_saved,
+            personalization_preferences=summarize_preferences(personalization),
         )
         return answer
     finally:

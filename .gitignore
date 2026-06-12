@@ -7,3 +7,5 @@ __pycache__/
 *.egg-info/
 data/index/*
 !data/index/.gitkeep
+data/memory/*
+!data/memory/.gitkeep

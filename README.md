@@ -6,6 +6,7 @@ A deployable Python framework for three retrieval-augmented generation pipelines
 - **Corrective RAG**: retrieve, grade/filter weak context, rewrite the query when evidence is poor, retrieve again, then answer from the corrected context.
 - **Planner RAG**: dynamically decompose broad questions into focused retrieval tasks, retrieve evidence for each task, fuse the evidence, then synthesize one answer.
 - **Hybrid retrieval**: combine dense vector search and BM25 lexical search with Reciprocal Rank Fusion.
+- **Personalization memory**: adapt answer style with stateless request preferences or stateful user memory without treating memory as factual evidence.
 
 The LLM layer uses open-source-friendly interfaces:
 
@@ -78,7 +79,33 @@ The interface includes:
 - Standard RAG, Corrective RAG, and Planner RAG flow diagrams.
 - Step-by-step pipeline trace cards.
 - Run observability with trace ID, provider, model, total duration, source count, scores, and correction status.
+- Stateless and stateful personalization controls with visible memory trace metadata.
 - Source chunks with RRF scores, vector/BM25 ranks, and raw retrieval scores.
+
+## Personalization Memory
+
+The API supports two personalization modes:
+
+- `stateless`: uses only `session_preferences` from the current request.
+- `stateful`: loads preferences by `user_id` and can persist new preferences when `remember_preferences=true`.
+
+Memory changes answer presentation only. It is not added to the retrieved source context and should not be cited as evidence.
+
+```bash
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question":"Explain corrective RAG for an engineer.",
+    "pipeline":"corrective",
+    "memory_mode":"stateful",
+    "user_id":"local-demo",
+    "remember_preferences":true,
+    "session_preferences":{
+      "depth":"technical",
+      "format":"bullets with citations"
+    }
+  }'
+```
 
 ## Hybrid Retrieval
 
@@ -244,6 +271,7 @@ Important settings:
 
 - `DOCS_DIR`: directory with source documents.
 - `INDEX_DIR`: persisted vector index directory.
+- `MEMORY_STORE_PATH`: JSON file for local stateful personalization memory.
 - `EMBEDDING_MODEL`: Sentence Transformers model.
 - `LLM_PROVIDER`: `ollama`, `openai-compatible`, `github-models`, or `echo`.
 - `LLM_MODEL`: model name for the selected provider.

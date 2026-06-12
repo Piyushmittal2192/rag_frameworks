@@ -8,7 +8,7 @@ The application supports three RAG methods:
 - Corrective RAG
 - Planner RAG
 
-It also includes hybrid retrieval, BM25, dense vector search, RRF fusion, reranking, query rewrite quality gates, observability, and an optional LLM-as-judge faithfulness layer.
+It also includes hybrid retrieval, BM25, dense vector search, RRF fusion, reranking, query rewrite quality gates, personalization memory, observability, and an optional LLM-as-judge faithfulness layer.
 
 ## Recommended Reading Order
 
@@ -22,10 +22,11 @@ It also includes hybrid retrieval, BM25, dense vector search, RRF fusion, rerank
 8. [Reciprocal Rank Fusion](reciprocal-rank-fusion.md)
 9. [Reranking](reranking.md)
 10. [Query Rewriting and Quality Gates](query-rewriting-and-quality-gates.md)
-11. [LLM-as-Judge Faithfulness](llm-as-judge-faithfulness.md)
-12. [Observability and Tracing](observability-and-tracing.md)
-13. [Open Source LLM Interfaces](open-source-llm-interfaces.md)
-14. [Deployment and GitHub](deployment-and-github.md)
+11. [Personalization Memory](personalization-memory.md)
+12. [LLM-as-Judge Faithfulness](llm-as-judge-faithfulness.md)
+13. [Observability and Tracing](observability-and-tracing.md)
+14. [Open Source LLM Interfaces](open-source-llm-interfaces.md)
+15. [Deployment and GitHub](deployment-and-github.md)
 
 ## System Map
 
@@ -39,10 +40,12 @@ flowchart LR
     Corrective["Corrective RAG"]
     Planner["Planner RAG"]
     Retrieve["Hybrid Retrieval"]
+    Memory["Personalization Memory"]
     LLM["LLM Interface"]
     Judge["Optional LLM Judge"]
 
     User --> UI --> API --> Pipeline
+    API --> Memory
     Pipeline --> Standard
     Pipeline --> Corrective
     Pipeline --> Planner
@@ -57,4 +60,3 @@ flowchart LR
 ## What Is Not In This Folder
 
 This folder is human-facing documentation. It is not the knowledge base used by the app at runtime. The sample RAG corpus remains in `data/docs/`, and the generated retrieval index remains in `data/index/`.
-

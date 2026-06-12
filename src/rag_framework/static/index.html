@@ -68,6 +68,56 @@
               </label>
             </div>
 
+            <section class="memory-console" aria-label="Memory personalization">
+              <div class="memory-heading">
+                <div>
+                  <p class="panel-kicker">Memory</p>
+                  <h3>Personalisation</h3>
+                </div>
+                <label class="remember-toggle">
+                  <input id="remember-preferences" type="checkbox" />
+                  <span>Remember</span>
+                </label>
+              </div>
+
+              <fieldset class="segmented-control memory-segment" aria-label="Memory mode">
+                <label>
+                  <input type="radio" name="memory_mode" value="stateless" checked />
+                  <span>Stateless</span>
+                </label>
+                <label>
+                  <input type="radio" name="memory_mode" value="stateful" />
+                  <span>Stateful</span>
+                </label>
+              </fieldset>
+
+              <label for="user-id">User ID</label>
+              <input id="user-id" name="user_id" type="text" value="local-demo" autocomplete="off" />
+
+              <div class="preference-grid">
+                <label for="preference-depth">
+                  Depth
+                  <input
+                    id="preference-depth"
+                    data-preference-key="depth"
+                    type="text"
+                    value="concise but technical"
+                    autocomplete="off"
+                  />
+                </label>
+                <label for="preference-format">
+                  Format
+                  <input
+                    id="preference-format"
+                    data-preference-key="format"
+                    type="text"
+                    value="bullets with citations"
+                    autocomplete="off"
+                  />
+                </label>
+              </div>
+            </section>
+
             <section class="default-questions" aria-label="Default questions">
               <p>Default questions</p>
               <button

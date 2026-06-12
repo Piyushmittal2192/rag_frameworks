@@ -343,6 +343,64 @@ input:focus {
   background: rgba(2, 8, 14, 0.78);
 }
 
+.memory-console {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background:
+    linear-gradient(135deg, rgba(167, 139, 255, 0.09), transparent 58%),
+    rgba(2, 8, 14, 0.58);
+}
+
+.memory-heading,
+.remember-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.memory-heading h3 {
+  font-size: 0.94rem;
+}
+
+.remember-toggle {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.remember-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--mint);
+}
+
+.memory-segment {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#user-id,
+.preference-grid input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 10px;
+  color: var(--ink);
+  background: rgba(2, 8, 14, 0.78);
+}
+
+.preference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .default-questions {
   display: grid;
   gap: 8px;
@@ -1003,6 +1061,10 @@ input:focus {
   }
 
   .branch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preference-grid {
     grid-template-columns: 1fr;
   }
 }

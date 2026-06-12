@@ -24,6 +24,16 @@ class PipelineStep(BaseModel):
     details: dict[str, str | int | float | bool | list[str]] = Field(default_factory=dict)
 
 
+class PersonalizationContext(BaseModel):
+    mode: str = "stateless"
+    user_id: str | None = None
+    preferences: dict[str, str] = Field(default_factory=dict)
+    persisted_preferences: dict[str, str] = Field(default_factory=dict)
+    session_preferences: dict[str, str] = Field(default_factory=dict)
+    memory_loaded: bool = False
+    memory_saved: bool = False
+
+
 class TraceMetadata(BaseModel):
     trace_id: str
     started_at: str
@@ -41,6 +51,11 @@ class TraceMetadata(BaseModel):
     judge_model: str | None = None
     judge_verdict: str | None = None
     faithfulness_score: float | None = None
+    memory_mode: str = "stateless"
+    memory_user_id: str | None = None
+    memory_loaded: bool = False
+    memory_saved: bool = False
+    personalization_preferences: list[str] = Field(default_factory=list)
 
 
 class JudgeResult(BaseModel):
@@ -59,5 +74,6 @@ class Answer(BaseModel):
     steps: list[PipelineStep] = Field(default_factory=list)
     trace: TraceMetadata | None = None
     judge: JudgeResult | None = None
+    personalization: PersonalizationContext | None = None
     rewritten_query: str | None = None
     correction_applied: bool = False

@@ -4,6 +4,9 @@ Do not infer missing facts from nearby facts. If the question asks what is not s
 only answer with unsupported items that are explicitly named in the context.
 When the context contains an explicit list, preserve every item in that list.
 
+Personalization:
+{personalization}
+
 Question:
 {question}
 

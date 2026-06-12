@@ -4,7 +4,7 @@ This document explains the machine learning and retrieval design choices in the 
 
 ## ML Objective
 
-The goal is to answer user questions from retrieved project documents while reducing hallucination risk. The system does this through retrieval, reranking, corrective query rewriting, planner decomposition, citations, and optional faithfulness judging.
+The goal is to answer user questions from retrieved project documents while reducing hallucination risk. The system does this through retrieval, reranking, corrective query rewriting, planner decomposition, citations, optional personalization, and optional faithfulness judging.
 
 ## Retrieval Strategy
 
@@ -83,6 +83,26 @@ flowchart TD
     J --> I["Citation issues"]
 ```
 
+## Personalization Memory Design
+
+Personalization memory is a generation-time control signal. It should adapt answer style, depth, and formatting, but it should not change what counts as evidence.
+
+```mermaid
+flowchart LR
+    Q["Question"] --> R["Retrieval and reranking"]
+    R --> C["Retrieved context"]
+    P["Personalization context"] --> A["Answer prompt"]
+    C --> A
+    A --> L["LLM answer"]
+```
+
+The app supports two modes:
+
+- Stateless: use preferences included in the current request only.
+- Stateful: load and optionally save sanitized preferences by `user_id`.
+
+The important ML boundary is that memory is not part of the retriever corpus. It is not fused with BM25 or vectors, it is not reranked, and it is not cited. This prevents personalization notes from becoming unsupported facts.
+
 ## Evaluation Strategy
 
 The next evaluation layer should use a curated dataset with:
@@ -92,6 +112,7 @@ The next evaluation layer should use a curated dataset with:
 - required answer facts
 - forbidden hallucinated facts
 - answerable or unanswerable label
+- personalization preference label when style adaptation is being tested
 
 Recommended metrics:
 
@@ -101,6 +122,7 @@ Recommended metrics:
 - answer faithfulness
 - citation accuracy
 - no-answer accuracy
+- personalization adherence without factual drift
 
 ## Known Tradeoffs
 
@@ -108,6 +130,7 @@ Recommended metrics:
 - Corrective RAG improves recovery but adds LLM calls.
 - Planner RAG improves multi-part retrieval but can over-decompose.
 - LLM judges improve visibility but are not perfect ground truth.
+- Personalization improves usability but can create answer-shaping risk if treated as evidence.
 
 ## Next Improvements
 
@@ -115,4 +138,3 @@ Recommended metrics:
 - Add batch evaluation CLI.
 - Add dashboards for retrieval and faithfulness metrics.
 - Track metric regressions in CI.
-

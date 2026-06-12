@@ -6,7 +6,8 @@ import numpy as np
 from rag_framework.embeddings import Embedder
 from rag_framework.judges import Judge
 from rag_framework.llms import LLM
-from rag_framework.models import Answer, PipelineStep, SearchResult
+from rag_framework.memory import format_personalization_context, summarize_preferences
+from rag_framework.models import Answer, PersonalizationContext, PipelineStep, SearchResult
 from rag_framework.prompts import ANSWER_PROMPT, DECOMPOSE_PROMPT, GRADE_PROMPT, REWRITE_PROMPT
 from rag_framework.rerankers import Reranker
 from rag_framework.vector_store import VectorStore
@@ -29,13 +30,17 @@ class StandardRAGPipeline:
         self.reranker = reranker
         self.judge = judge
 
-    async def answer(self, question: str) -> Answer:
+    async def answer(
+        self,
+        question: str,
+        personalization: PersonalizationContext | None = None,
+    ) -> Answer:
         started = perf_counter()
         results = self.store.search(question, self.embedder, self.top_k, self.reranker)
         retrieve_ms = _elapsed_ms(started)
 
         started = perf_counter()
-        prompt = ANSWER_PROMPT.format(question=question, context=_format_context(results))
+        prompt = _build_answer_prompt(question, results, personalization)
         build_ms = _elapsed_ms(started)
 
         started = perf_counter()
@@ -66,7 +71,10 @@ class StandardRAGPipeline:
                     status="completed",
                     description="Packed the retrieved chunks into the answer prompt.",
                     duration_ms=build_ms,
-                    details={"sources": _source_labels(results)},
+                    details={
+                        "sources": _source_labels(results),
+                        **_personalization_details(personalization),
+                    },
                 ),
                 PipelineStep(
                     name="Generate Answer",
@@ -76,6 +84,7 @@ class StandardRAGPipeline:
                     details={"context_chunks": len(results)},
                 ),
             ],
+            personalization=personalization,
         )
         return await self._run_judge(answer)
 
@@ -139,7 +148,11 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
         self.rewrite_evidence_margin = rewrite_evidence_margin
         self.reranker_evidence_threshold = reranker_evidence_threshold
 
-    async def answer(self, question: str) -> Answer:
+    async def answer(
+        self,
+        question: str,
+        personalization: PersonalizationContext | None = None,
+    ) -> Answer:
         started = perf_counter()
         initial_results = self.store.search(question, self.embedder, self.top_k, self.reranker)
         initial_retrieval_ms = _elapsed_ms(started)
@@ -281,7 +294,7 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
                 )
         context_results = filtered[: self.top_k] if filtered else initial_results[: self.top_k]
         started = perf_counter()
-        prompt = ANSWER_PROMPT.format(question=question, context=_format_context(context_results))
+        prompt = _build_answer_prompt(question, context_results, personalization)
         build_ms = _elapsed_ms(started)
 
         started = perf_counter()
@@ -295,7 +308,10 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
                     status="completed",
                     description="Selected the final chunks that will be shown to the LLM.",
                     duration_ms=build_ms,
-                    details={"sources": _source_labels(context_results)},
+                    details={
+                        "sources": _source_labels(context_results),
+                        **_personalization_details(personalization),
+                    },
                 ),
                 PipelineStep(
                     name="Generate Answer",
@@ -312,6 +328,7 @@ class CorrectiveRAGPipeline(StandardRAGPipeline):
             sources=context_results,
             pipeline="corrective",
             steps=steps,
+            personalization=personalization,
             rewritten_query=rewritten_query,
             correction_applied=correction_applied,
         )
@@ -395,7 +412,11 @@ class PlannerRAGPipeline(StandardRAGPipeline):
         )
         self.max_sub_questions = max_sub_questions
 
-    async def answer(self, question: str) -> Answer:
+    async def answer(
+        self,
+        question: str,
+        personalization: PersonalizationContext | None = None,
+    ) -> Answer:
         started = perf_counter()
         sub_questions = await self._decompose_question(question)
         plan_ms = _elapsed_ms(started)
@@ -457,7 +478,7 @@ class PlannerRAGPipeline(StandardRAGPipeline):
         )
 
         started = perf_counter()
-        prompt = ANSWER_PROMPT.format(question=question, context=_format_context(fused_results))
+        prompt = _build_answer_prompt(question, fused_results, personalization)
         build_ms = _elapsed_ms(started)
 
         started = perf_counter()
@@ -471,7 +492,10 @@ class PlannerRAGPipeline(StandardRAGPipeline):
                     status="completed",
                     description="Packed the fused sub-query evidence into the answer prompt.",
                     duration_ms=build_ms,
-                    details={"context_chunks": len(fused_results)},
+                    details={
+                        "context_chunks": len(fused_results),
+                        **_personalization_details(personalization),
+                    },
                 ),
                 PipelineStep(
                     name="Generate Answer",
@@ -489,6 +513,7 @@ class PlannerRAGPipeline(StandardRAGPipeline):
             sources=fused_results,
             pipeline="planner",
             steps=steps,
+            personalization=personalization,
         )
         return await self._run_judge(answer)
 
@@ -511,6 +536,36 @@ def _format_context(results: list[SearchResult]) -> str:
         f"reranker {result.raw_scores.get('reranker', 0.0):.3f}]\n{result.chunk.text}"
         for result in results
     )
+
+
+def _build_answer_prompt(
+    question: str,
+    results: list[SearchResult],
+    personalization: PersonalizationContext | None,
+) -> str:
+    return ANSWER_PROMPT.format(
+        question=question,
+        context=_format_context(results),
+        personalization=format_personalization_context(personalization),
+    )
+
+
+def _personalization_details(
+    personalization: PersonalizationContext | None,
+) -> dict[str, str | bool | list[str]]:
+    if personalization is None:
+        return {
+            "memory_mode": "stateless",
+            "memory_loaded": False,
+            "memory_saved": False,
+            "personalization_preferences": [],
+        }
+    return {
+        "memory_mode": personalization.mode,
+        "memory_loaded": personalization.memory_loaded,
+        "memory_saved": personalization.memory_saved,
+        "personalization_preferences": summarize_preferences(personalization),
+    }
 
 
 def _mean_score(results: list[SearchResult]) -> float:

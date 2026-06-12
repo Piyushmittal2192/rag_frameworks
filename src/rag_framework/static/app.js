@@ -1,6 +1,8 @@
 const form = document.querySelector("#query-form");
 const questionInput = document.querySelector("#question");
 const topKInput = document.querySelector("#top-k");
+const userIdInput = document.querySelector("#user-id");
+const rememberPreferencesInput = document.querySelector("#remember-preferences");
 const submitButton = document.querySelector("#submit-button");
 const answerTitle = document.querySelector("#answer-title");
 const answer = document.querySelector("#answer");
@@ -11,6 +13,8 @@ const steps = document.querySelector("#steps");
 const sources = document.querySelector("#sources");
 const judgeReview = document.querySelector("#judge-review");
 const pipelineInputs = document.querySelectorAll('input[name="pipeline"]');
+const memoryModeInputs = document.querySelectorAll('input[name="memory_mode"]');
+const preferenceInputs = document.querySelectorAll("[data-preference-key]");
 const defaultQuestionButtons = document.querySelectorAll(".default-question");
 
 const defaultQuestions = {
@@ -46,8 +50,10 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const pipeline = new FormData(form).get("pipeline");
+  const memoryMode = new FormData(form).get("memory_mode") || "stateless";
   const question = questionInput.value.trim();
   const topK = Number(topKInput.value || 5);
+  const sessionPreferences = collectPreferences();
 
   if (!question) {
     setError("Enter a question before running the pipeline.");
@@ -60,7 +66,15 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch("/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, pipeline, top_k: topK }),
+      body: JSON.stringify({
+        question,
+        pipeline,
+        top_k: topK,
+        memory_mode: memoryMode,
+        user_id: userIdInput.value.trim() || null,
+        session_preferences: sessionPreferences,
+        remember_preferences: Boolean(rememberPreferencesInput.checked),
+      }),
     });
 
     if (!response.ok) {
@@ -142,9 +156,18 @@ function renderObservability(trace) {
     ["Best Score", formatNumber(trace.best_score)],
     ["Mean Score", formatNumber(trace.mean_score)],
     ["Correction", trace.correction_applied ? "Applied" : "Not applied"],
+    ["Memory", labelize(trace.memory_mode || "stateless")],
     ["Judge", trace.judge_enabled ? "Enabled" : "Disabled"],
     ["Reranker", trace.reranker_enabled ? "Enabled" : "Disabled"],
   ];
+  if (trace.memory_user_id) {
+    metrics.push(["Memory User", trace.memory_user_id]);
+  }
+  metrics.push(["Memory Loaded", trace.memory_loaded ? "Yes" : "No"]);
+  metrics.push(["Memory Saved", trace.memory_saved ? "Yes" : "No"]);
+  if (trace.personalization_preferences?.length) {
+    metrics.push(["Preferences", trace.personalization_preferences.join(", ")]);
+  }
   if (trace.judge_model) {
     metrics.push(["Judge Model", trace.judge_model]);
   }
@@ -285,6 +308,18 @@ function renderSources(items) {
       `;
     })
     .join("");
+}
+
+function collectPreferences() {
+  const preferences = {};
+  preferenceInputs.forEach((input) => {
+    const key = input.dataset.preferenceKey;
+    const value = input.value.trim();
+    if (key && value) {
+      preferences[key] = value;
+    }
+  });
+  return preferences;
 }
 
 function escapeHtml(value) {

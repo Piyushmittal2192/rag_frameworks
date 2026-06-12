@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     app_name: str = "RAG Framework"
     docs_dir: Path = Field(default=Path("data/docs"), validation_alias="DOCS_DIR")
     index_dir: Path = Field(default=Path("data/index"), validation_alias="INDEX_DIR")
+    memory_store_path: Path = Field(
+        default=Path("data/memory/users.json"),
+        validation_alias="MEMORY_STORE_PATH",
+    )
     embedding_model: str = Field(
         default="sentence-transformers/all-MiniLM-L6-v2",
         validation_alias="EMBEDDING_MODEL",
