@@ -6,7 +6,11 @@ import numpy as np
 from rag_framework.embeddings import Embedder
 from rag_framework.judges import Judge
 from rag_framework.llms import LLM
-from rag_framework.memory import format_personalization_context, summarize_preferences
+from rag_framework.memory import (
+    format_personalization_context,
+    summarize_preferences,
+    summarize_scratchpad,
+)
 from rag_framework.models import Answer, PersonalizationContext, PipelineStep, SearchResult
 from rag_framework.prompts import ANSWER_PROMPT, DECOMPOSE_PROMPT, GRADE_PROMPT, REWRITE_PROMPT
 from rag_framework.rerankers import Reranker
@@ -565,6 +569,12 @@ def _personalization_details(
         "memory_loaded": personalization.memory_loaded,
         "memory_saved": personalization.memory_saved,
         "personalization_preferences": summarize_preferences(personalization),
+        "conversation_memory_loaded": personalization.conversation_memory_loaded,
+        "conversation_memory_saved": personalization.conversation_memory_saved,
+        "recent_topics": personalization.recent_topics,
+        "scratchpad_memory_loaded": personalization.scratchpad_memory_loaded,
+        "scratchpad_memory_saved": personalization.scratchpad_memory_saved,
+        "scratchpad_items": summarize_scratchpad(personalization),
     }
 
 

@@ -3,6 +3,15 @@ const questionInput = document.querySelector("#question");
 const topKInput = document.querySelector("#top-k");
 const userIdInput = document.querySelector("#user-id");
 const rememberPreferencesInput = document.querySelector("#remember-preferences");
+const rememberConversationInput = document.querySelector("#remember-conversation");
+const rememberScratchpadInput = document.querySelector("#remember-scratchpad");
+const conversationSummaryInput = document.querySelector("#conversation-summary");
+const currentGoalInput = document.querySelector("#current-goal");
+const userIntentInput = document.querySelector("#user-intent");
+const recentTopicsInput = document.querySelector("#recent-topics");
+const scratchpadFactsInput = document.querySelector("#scratchpad-facts");
+const scratchpadDecisionsInput = document.querySelector("#scratchpad-decisions");
+const scratchpadOpenQuestionsInput = document.querySelector("#scratchpad-open-questions");
 const submitButton = document.querySelector("#submit-button");
 const answerTitle = document.querySelector("#answer-title");
 const answer = document.querySelector("#answer");
@@ -74,6 +83,10 @@ form.addEventListener("submit", async (event) => {
         user_id: userIdInput.value.trim() || null,
         session_preferences: sessionPreferences,
         remember_preferences: Boolean(rememberPreferencesInput.checked),
+        conversation_memory: collectConversationMemory(),
+        remember_conversation_memory: Boolean(rememberConversationInput.checked),
+        scratchpad_memory: collectScratchpadMemory(),
+        remember_scratchpad_memory: Boolean(rememberScratchpadInput.checked),
       }),
     });
 
@@ -165,8 +178,18 @@ function renderObservability(trace) {
   }
   metrics.push(["Memory Loaded", trace.memory_loaded ? "Yes" : "No"]);
   metrics.push(["Memory Saved", trace.memory_saved ? "Yes" : "No"]);
+  metrics.push(["Conversation Loaded", trace.conversation_memory_loaded ? "Yes" : "No"]);
+  metrics.push(["Conversation Saved", trace.conversation_memory_saved ? "Yes" : "No"]);
+  metrics.push(["Scratchpad Loaded", trace.scratchpad_memory_loaded ? "Yes" : "No"]);
+  metrics.push(["Scratchpad Saved", trace.scratchpad_memory_saved ? "Yes" : "No"]);
   if (trace.personalization_preferences?.length) {
     metrics.push(["Preferences", trace.personalization_preferences.join(", ")]);
+  }
+  if (trace.recent_topics?.length) {
+    metrics.push(["Topics", trace.recent_topics.join(", ")]);
+  }
+  if (trace.scratchpad_items?.length) {
+    metrics.push(["Scratchpad", trace.scratchpad_items.join(", ")]);
   }
   if (trace.judge_model) {
     metrics.push(["Judge Model", trace.judge_model]);
@@ -320,6 +343,37 @@ function collectPreferences() {
     }
   });
   return preferences;
+}
+
+function collectConversationMemory() {
+  return {
+    conversation_summary: conversationSummaryInput.value.trim(),
+    current_goal: currentGoalInput.value.trim(),
+    user_intent: userIntentInput.value.trim(),
+    recent_topics: splitInlineList(recentTopicsInput.value),
+  };
+}
+
+function collectScratchpadMemory() {
+  return {
+    facts: splitLines(scratchpadFactsInput.value),
+    decisions: splitLines(scratchpadDecisionsInput.value),
+    open_questions: splitLines(scratchpadOpenQuestionsInput.value),
+  };
+}
+
+function splitLines(value) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function splitInlineList(value) {
+  return value
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function escapeHtml(value) {

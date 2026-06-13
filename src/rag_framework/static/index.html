@@ -74,10 +74,20 @@
                   <p class="panel-kicker">Memory</p>
                   <h3>Personalisation</h3>
                 </div>
-                <label class="remember-toggle">
-                  <input id="remember-preferences" type="checkbox" />
-                  <span>Remember</span>
-                </label>
+                <div class="memory-toggles">
+                  <label class="remember-toggle">
+                    <input id="remember-preferences" type="checkbox" />
+                    <span>Style</span>
+                  </label>
+                  <label class="remember-toggle">
+                    <input id="remember-conversation" type="checkbox" />
+                    <span>Conversation</span>
+                  </label>
+                  <label class="remember-toggle">
+                    <input id="remember-scratchpad" type="checkbox" />
+                    <span>Scratchpad</span>
+                  </label>
+                </div>
               </div>
 
               <fieldset class="segmented-control memory-segment" aria-label="Memory mode">
@@ -116,6 +126,67 @@
                   />
                 </label>
               </div>
+
+              <label for="conversation-summary">Conversation summary</label>
+              <textarea
+                id="conversation-summary"
+                class="memory-textarea"
+                rows="3"
+                placeholder="Short summary of the last useful conversation state"
+              ></textarea>
+
+              <div class="preference-grid">
+                <label for="current-goal">
+                  Current goal
+                  <input
+                    id="current-goal"
+                    type="text"
+                    value="Build a deployable RAG framework with transparent traces"
+                    autocomplete="off"
+                  />
+                </label>
+                <label for="user-intent">
+                  Overall intent
+                  <input
+                    id="user-intent"
+                    type="text"
+                    value="Learn, demonstrate, and extend RAG patterns"
+                    autocomplete="off"
+                  />
+                </label>
+              </div>
+
+              <label for="recent-topics">Recent topics</label>
+              <input
+                id="recent-topics"
+                type="text"
+                value="Corrective RAG, Planner RAG, LLM judge, personalization memory"
+                autocomplete="off"
+              />
+
+              <label for="scratchpad-facts">Scratchpad facts</label>
+              <textarea
+                id="scratchpad-facts"
+                class="memory-textarea"
+                rows="3"
+                placeholder="One fact per line, such as repo URL, thresholds, ports, model choices"
+              ></textarea>
+
+              <label for="scratchpad-decisions">Scratchpad decisions</label>
+              <textarea
+                id="scratchpad-decisions"
+                class="memory-textarea"
+                rows="3"
+                placeholder="One decision per line"
+              ></textarea>
+
+              <label for="scratchpad-open-questions">Open questions</label>
+              <textarea
+                id="scratchpad-open-questions"
+                class="memory-textarea"
+                rows="3"
+                placeholder="One open question per line"
+              ></textarea>
             </section>
 
             <section class="default-questions" aria-label="Default questions">

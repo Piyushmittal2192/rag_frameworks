@@ -30,8 +30,19 @@ class PersonalizationContext(BaseModel):
     preferences: dict[str, str] = Field(default_factory=dict)
     persisted_preferences: dict[str, str] = Field(default_factory=dict)
     session_preferences: dict[str, str] = Field(default_factory=dict)
+    conversation_summary: str | None = None
+    current_goal: str | None = None
+    user_intent: str | None = None
+    recent_topics: list[str] = Field(default_factory=list)
+    scratchpad_facts: list[str] = Field(default_factory=list)
+    scratchpad_decisions: list[str] = Field(default_factory=list)
+    scratchpad_open_questions: list[str] = Field(default_factory=list)
     memory_loaded: bool = False
     memory_saved: bool = False
+    conversation_memory_loaded: bool = False
+    conversation_memory_saved: bool = False
+    scratchpad_memory_loaded: bool = False
+    scratchpad_memory_saved: bool = False
 
 
 class TraceMetadata(BaseModel):
@@ -56,6 +67,12 @@ class TraceMetadata(BaseModel):
     memory_loaded: bool = False
     memory_saved: bool = False
     personalization_preferences: list[str] = Field(default_factory=list)
+    conversation_memory_loaded: bool = False
+    conversation_memory_saved: bool = False
+    scratchpad_memory_loaded: bool = False
+    scratchpad_memory_saved: bool = False
+    recent_topics: list[str] = Field(default_factory=list)
+    scratchpad_items: list[str] = Field(default_factory=list)
 
 
 class JudgeResult(BaseModel):

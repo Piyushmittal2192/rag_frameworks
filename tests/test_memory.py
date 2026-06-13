@@ -55,6 +55,59 @@ def test_stateful_memory_persists_and_reloads_preferences(tmp_path: Path):
     assert second.preferences == {"format": "bullets", "depth": "detailed"}
 
 
+def test_stateful_conversation_memory_persists_per_user(tmp_path: Path):
+    manager = MemoryManager(tmp_path / "users.json")
+
+    first = manager.build_context(
+        mode="stateful",
+        user_id="piyush@example.com",
+        conversation_memory={
+            "conversation_summary": "Built RAG app and added memory design.",
+            "current_goal": "Add per-user scratchpad memory.",
+            "user_intent": "Create an educational deployable RAG framework.",
+            "recent_topics": ["RAG", "memory", "faithfulness"],
+        },
+        remember_conversation_memory=True,
+    )
+    second = manager.build_context(mode="stateful", user_id="piyush@example.com")
+
+    assert first.conversation_memory_saved is True
+    assert second.conversation_memory_loaded is True
+    assert second.conversation_summary == "Built RAG app and added memory design."
+    assert second.current_goal == "Add per-user scratchpad memory."
+    assert second.user_intent == "Create an educational deployable RAG framework."
+    assert second.recent_topics == ["RAG", "memory", "faithfulness"]
+
+
+def test_stateful_scratchpad_memory_merges_facts_decisions_and_questions(tmp_path: Path):
+    manager = MemoryManager(tmp_path / "users.json")
+
+    first = manager.build_context(
+        mode="stateful",
+        user_id="piyush@example.com",
+        scratchpad_memory={
+            "facts": ["Repo is Piyushmittal2192/rag_frameworks"],
+            "decisions": ["Memory is not cited as retrieval evidence"],
+            "open_questions": ["Should memory influence retrieval expansion?"],
+        },
+        remember_scratchpad_memory=True,
+    )
+    second = manager.build_context(
+        mode="stateful",
+        user_id="piyush@example.com",
+        scratchpad_memory={"facts": ["Local app can run on port 8010"]},
+    )
+
+    assert first.scratchpad_memory_saved is True
+    assert second.scratchpad_memory_loaded is True
+    assert second.scratchpad_facts == [
+        "Repo is Piyushmittal2192/rag_frameworks",
+        "Local app can run on port 8010",
+    ]
+    assert second.scratchpad_decisions == ["Memory is not cited as retrieval evidence"]
+    assert second.scratchpad_open_questions == ["Should memory influence retrieval expansion?"]
+
+
 def test_stateful_memory_requires_user_id(tmp_path: Path):
     manager = MemoryManager(tmp_path / "users.json")
 
@@ -90,3 +143,24 @@ def test_personalization_prompt_has_neutral_default():
 
     assert "No personalization preferences" in prompt_block
     assert "Do not treat user memory as factual source evidence" in prompt_block
+
+
+def test_personalization_prompt_includes_conversation_and_scratchpad_context():
+    context = PersonalizationContext(
+        mode="stateful",
+        user_id="local-demo",
+        conversation_summary="We added a RAG UI and trust layer.",
+        current_goal="Add working memory.",
+        user_intent="Build a transparent learning app.",
+        recent_topics=["planner rag", "memory"],
+        scratchpad_facts=["GitHub repo is Piyushmittal2192/rag_frameworks"],
+        scratchpad_decisions=["Do not cite memory as evidence"],
+        scratchpad_open_questions=["Should memory influence retrieval?"],
+    )
+
+    prompt_block = format_personalization_context(context)
+
+    assert "Conversation memory:" in prompt_block
+    assert "current goal: Add working memory." in prompt_block
+    assert "Scratchpad memory:" in prompt_block
+    assert "decision: Do not cite memory as evidence" in prompt_block

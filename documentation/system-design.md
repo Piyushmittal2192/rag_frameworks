@@ -29,7 +29,7 @@ flowchart TD
 - CLI: supports ingestion and command-line question answering.
 - Pipeline core: implements Standard, Corrective, and Planner RAG.
 - VectorStore: persists chunks, dense vectors, and BM25 state.
-- MemoryManager: builds stateless or stateful personalization context for answer generation.
+- MemoryManager: builds stateless or stateful preference, conversation, and scratchpad memory context for answer generation.
 - LLM adapters: support Ollama, OpenAI-compatible servers, GitHub Models, and Echo demo mode.
 - Judge: optionally evaluates answer faithfulness against retrieved context.
 
@@ -75,6 +75,10 @@ Request fields:
 - `user_id`: required for stateful memory
 - `session_preferences`: per-request personalization preferences
 - `remember_preferences`: persist current preferences when stateful
+- `conversation_memory`: summary, current goal, user intent, and recent topics
+- `remember_conversation_memory`: persist current conversation memory when stateful
+- `scratchpad_memory`: durable facts, decisions, and open questions
+- `remember_scratchpad_memory`: persist current scratchpad memory when stateful
 
 Response includes:
 
@@ -84,6 +88,7 @@ Response includes:
 - trace metadata
 - optional judge result
 - personalization metadata
+- conversation and scratchpad memory trace metadata
 
 ## Configuration
 

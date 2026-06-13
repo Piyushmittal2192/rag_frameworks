@@ -86,10 +86,10 @@ The interface includes:
 
 The API supports two personalization modes:
 
-- `stateless`: uses only `session_preferences` from the current request.
-- `stateful`: loads preferences by `user_id` and can persist new preferences when `remember_preferences=true`.
+- `stateless`: uses only memory supplied in the current request.
+- `stateful`: loads memory by `user_id` and can persist new memory when the related remember flags are true.
 
-Memory changes answer presentation only. It is not added to the retrieved source context and should not be cited as evidence.
+Memory supports three buckets: style preferences, conversation memory, and scratchpad memory. It helps with continuity and presentation, but it is not added to the retrieved source context and should not be cited as evidence.
 
 ```bash
 curl -X POST http://localhost:8000/query \
@@ -103,6 +103,19 @@ curl -X POST http://localhost:8000/query \
     "session_preferences":{
       "depth":"technical",
       "format":"bullets with citations"
+    },
+    "remember_conversation_memory":true,
+    "conversation_memory":{
+      "conversation_summary":"We are building and deploying a transparent RAG framework.",
+      "current_goal":"Add per-user conversation and scratchpad memory.",
+      "user_intent":"Learn and demonstrate production-style RAG design.",
+      "recent_topics":["Corrective RAG","Planner RAG","LLM judge","memory"]
+    },
+    "remember_scratchpad_memory":true,
+    "scratchpad_memory":{
+      "facts":["Repo is Piyushmittal2192/rag_frameworks"],
+      "decisions":["Memory should not be cited as retrieval evidence"],
+      "open_questions":["Should memory influence retrieval expansion later?"]
     }
   }'
 ```

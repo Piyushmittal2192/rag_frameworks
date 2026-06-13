@@ -85,21 +85,29 @@ flowchart TD
 
 ## Personalization Memory Design
 
-Personalization memory is a generation-time control signal. It should adapt answer style, depth, and formatting, but it should not change what counts as evidence.
+Personalization memory is a generation-time control signal. It should adapt answer style, depth, formatting, and continuity, but it should not change what counts as evidence.
 
 ```mermaid
 flowchart LR
     Q["Question"] --> R["Retrieval and reranking"]
     R --> C["Retrieved context"]
-    P["Personalization context"] --> A["Answer prompt"]
+    P["Preference memory"] --> A["Answer prompt"]
+    CM["Conversation memory"] --> A
+    SP["Scratchpad memory"] --> A
     C --> A
     A --> L["LLM answer"]
 ```
 
 The app supports two modes:
 
-- Stateless: use preferences included in the current request only.
-- Stateful: load and optionally save sanitized preferences by `user_id`.
+- Stateless: use memory included in the current request only.
+- Stateful: load and optionally save sanitized memory by `user_id`.
+
+The app separates memory into:
+
+- preferences for tone, depth, and format
+- conversation memory for compact summary, current goal, user intent, and topics
+- scratchpad memory for facts, decisions, numeric details, links, and open questions
 
 The important ML boundary is that memory is not part of the retriever corpus. It is not fused with BM25 or vectors, it is not reranked, and it is not cited. This prevents personalization notes from becoming unsupported facts.
 

@@ -14,7 +14,7 @@ from rag_framework.config import get_settings
 from rag_framework.embeddings import SentenceTransformerEmbedder
 from rag_framework.judges import LLMFaithfulnessJudge
 from rag_framework.llms import create_llm
-from rag_framework.memory import MemoryManager, summarize_preferences
+from rag_framework.memory import MemoryManager, summarize_preferences, summarize_scratchpad
 from rag_framework.models import TraceMetadata
 from rag_framework.pipelines import CorrectiveRAGPipeline, PlannerRAGPipeline, StandardRAGPipeline
 from rag_framework.rerankers import CrossEncoderReranker
@@ -29,6 +29,10 @@ class QueryRequest(BaseModel):
     user_id: str | None = None
     session_preferences: dict[str, str] = Field(default_factory=dict)
     remember_preferences: bool = False
+    conversation_memory: dict[str, object] = Field(default_factory=dict)
+    remember_conversation_memory: bool = False
+    scratchpad_memory: dict[str, object] = Field(default_factory=dict)
+    remember_scratchpad_memory: bool = False
 
 
 class AppState:
@@ -143,6 +147,10 @@ async def query(request: QueryRequest):
             user_id=request.user_id,
             session_preferences=request.session_preferences,
             remember_preferences=request.remember_preferences,
+            conversation_memory=request.conversation_memory,
+            remember_conversation_memory=request.remember_conversation_memory,
+            scratchpad_memory=request.scratchpad_memory,
+            remember_scratchpad_memory=request.remember_scratchpad_memory,
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -179,6 +187,12 @@ async def query(request: QueryRequest):
             memory_loaded=personalization.memory_loaded,
             memory_saved=personalization.memory_saved,
             personalization_preferences=summarize_preferences(personalization),
+            conversation_memory_loaded=personalization.conversation_memory_loaded,
+            conversation_memory_saved=personalization.conversation_memory_saved,
+            scratchpad_memory_loaded=personalization.scratchpad_memory_loaded,
+            scratchpad_memory_saved=personalization.scratchpad_memory_saved,
+            recent_topics=personalization.recent_topics,
+            scratchpad_items=summarize_scratchpad(personalization),
         )
         return answer
     finally:
