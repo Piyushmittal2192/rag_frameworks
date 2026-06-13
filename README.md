@@ -91,6 +91,14 @@ The API supports two personalization modes:
 
 Memory supports three buckets: style preferences, conversation memory, and scratchpad memory. It helps with continuity and presentation, but it is not added to the retrieved source context and should not be cited as evidence.
 
+Stateful scratchpad memory is time-aware and reinforced. Plain scratchpad strings are promoted into structured memory items with:
+
+- `created_at`, `updated_at`, `last_used_at`, and optional `expires_at`
+- `use_count`, `confidence`, `importance`, and `decay_rate`
+- type-specific defaults for `fact`, `decision`, and `open_question`
+
+When a memory item is reused or explicitly repeated, confidence, importance, and use count increase. Expired items are filtered out. Older temporary items lose rank through time decay, while durable decisions decay very slowly.
+
 ```bash
 curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \

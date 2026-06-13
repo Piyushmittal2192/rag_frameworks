@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import pytest
 
@@ -100,12 +101,108 @@ def test_stateful_scratchpad_memory_merges_facts_decisions_and_questions(tmp_pat
 
     assert first.scratchpad_memory_saved is True
     assert second.scratchpad_memory_loaded is True
-    assert second.scratchpad_facts == [
+    assert set(second.scratchpad_facts) == {
         "Repo is Piyushmittal2192/rag_frameworks",
         "Local app can run on port 8010",
-    ]
+    }
     assert second.scratchpad_decisions == ["Memory is not cited as retrieval evidence"]
     assert second.scratchpad_open_questions == ["Should memory influence retrieval expansion?"]
+
+
+def test_scratchpad_memory_uses_structured_reinforced_items(tmp_path: Path):
+    store_path = tmp_path / "users.json"
+    manager = MemoryManager(store_path)
+
+    manager.build_context(
+        mode="stateful",
+        user_id="piyush@example.com",
+        scratchpad_memory={"facts": ["Repo is Piyushmittal2192/rag_frameworks"]},
+        remember_scratchpad_memory=True,
+    )
+    manager.build_context(
+        mode="stateful",
+        user_id="piyush@example.com",
+        scratchpad_memory={"facts": ["Repo is Piyushmittal2192/rag_frameworks"]},
+        remember_scratchpad_memory=True,
+    )
+
+    payload = json.loads(store_path.read_text())
+    fact = payload["piyush@example.com"]["scratchpad"]["scratchpad_facts"][0]
+
+    assert fact["text"] == "Repo is Piyushmittal2192/rag_frameworks"
+    assert fact["type"] == "fact"
+    assert fact["use_count"] >= 1
+    assert fact["confidence"] > 0.75
+    assert fact["importance"] > 0.65
+
+
+def test_scratchpad_memory_filters_expired_items(tmp_path: Path):
+    store_path = tmp_path / "users.json"
+    store_path.write_text(
+        json.dumps(
+            {
+                "piyush@example.com": {
+                    "scratchpad": {
+                        "scratchpad_facts": [
+                            {
+                                "text": "Expired local port was 9999",
+                                "type": "fact",
+                                "created_at": "2020-01-01T00:00:00+00:00",
+                                "updated_at": "2020-01-01T00:00:00+00:00",
+                                "last_used_at": None,
+                                "use_count": 0,
+                                "confidence": 0.9,
+                                "importance": 0.9,
+                                "decay_rate": 0.01,
+                                "expires_at": "2020-01-02T00:00:00+00:00",
+                            },
+                            {
+                                "text": "Current repo is Piyushmittal2192/rag_frameworks",
+                                "type": "fact",
+                                "created_at": "2026-01-01T00:00:00+00:00",
+                                "updated_at": "2026-01-01T00:00:00+00:00",
+                                "last_used_at": None,
+                                "use_count": 0,
+                                "confidence": 0.9,
+                                "importance": 0.9,
+                                "decay_rate": 0.01,
+                                "expires_at": None,
+                            },
+                        ]
+                    }
+                }
+            }
+        )
+    )
+    manager = MemoryManager(store_path)
+
+    context = manager.build_context(mode="stateful", user_id="piyush@example.com")
+
+    assert context.scratchpad_facts == ["Current repo is Piyushmittal2192/rag_frameworks"]
+
+
+def test_scratchpad_memory_reads_legacy_plain_string_store(tmp_path: Path):
+    store_path = tmp_path / "users.json"
+    store_path.write_text(
+        json.dumps(
+            {
+                "piyush@example.com": {
+                    "scratchpad": {
+                        "scratchpad_facts": ["Legacy fact"],
+                        "scratchpad_decisions": ["Legacy decision"],
+                        "scratchpad_open_questions": ["Legacy question?"],
+                    }
+                }
+            }
+        )
+    )
+    manager = MemoryManager(store_path)
+
+    context = manager.build_context(mode="stateful", user_id="piyush@example.com")
+
+    assert context.scratchpad_facts == ["Legacy fact"]
+    assert context.scratchpad_decisions == ["Legacy decision"]
+    assert context.scratchpad_open_questions == ["Legacy question?"]
 
 
 def test_stateful_memory_requires_user_id(tmp_path: Path):

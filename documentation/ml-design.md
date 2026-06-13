@@ -109,6 +109,8 @@ The app separates memory into:
 - conversation memory for compact summary, current goal, user intent, and topics
 - scratchpad memory for facts, decisions, numeric details, links, and open questions
 
+Scratchpad memory is time-dependent and reinforced. Each stored item has timestamps, optional expiry, use count, confidence, importance, and decay rate. The app ranks active scratchpad items before adding them to the generation prompt. Repeated items gain confidence and importance; expired items are removed from prompt context; older items lose rank according to their decay rate.
+
 The important ML boundary is that memory is not part of the retriever corpus. It is not fused with BM25 or vectors, it is not reranked, and it is not cited. This prevents personalization notes from becoming unsupported facts.
 
 ## Evaluation Strategy

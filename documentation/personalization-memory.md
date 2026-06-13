@@ -16,6 +16,49 @@ The app keeps three separate memory buckets per user:
 
 The app does not store full raw questions by default.
 
+## Time-Dependent And Reinforced Memory
+
+Stateful scratchpad memory is stored as structured memory items. Users can still submit plain strings, but the backend promotes them into records with lifecycle and ranking metadata.
+
+```json
+{
+  "text": "Repo is Piyushmittal2192/rag_frameworks",
+  "type": "fact",
+  "created_at": "2026-06-13T10:00:00+00:00",
+  "updated_at": "2026-06-13T10:30:00+00:00",
+  "last_used_at": "2026-06-13T11:00:00+00:00",
+  "use_count": 3,
+  "confidence": 0.85,
+  "importance": 0.71,
+  "decay_rate": 0.01,
+  "expires_at": null
+}
+```
+
+The memory scorer ranks active scratchpad items with this idea:
+
+```text
+memory_score =
+  importance
+  + confidence
+  + reinforcement_boost
+  - time_decay
+```
+
+Where:
+
+- `reinforcement_boost` increases with `use_count`, up to a small cap.
+- `time_decay` grows as the item gets older.
+- `expires_at` removes temporary memory once it is no longer valid.
+
+Different memory types use different defaults:
+
+- `fact`: medium importance, light decay.
+- `decision`: high importance, very slow decay.
+- `open_question`: high importance, faster decay because open questions should eventually be resolved or refreshed.
+
+When an item is repeated in a new request, the app treats that as reinforcement. It increments `use_count`, updates `last_used_at`, and slightly raises confidence and importance. This means stable repeated facts become more likely to stay in the prompt, while stale or expired temporary facts fall away.
+
 ## Stateless Memory
 
 Stateless memory uses only the memory sent with the current request.
@@ -83,16 +126,55 @@ Example stateful memory shape:
       "recent_topics": ["RAG", "memory", "faithfulness"]
     },
     "scratchpad": {
-      "scratchpad_facts": ["Repo is Piyushmittal2192/rag_frameworks"],
-      "scratchpad_decisions": ["Memory is not cited as retrieval evidence"],
-      "scratchpad_open_questions": ["Should memory influence retrieval expansion?"]
+      "scratchpad_facts": [
+        {
+          "text": "Repo is Piyushmittal2192/rag_frameworks",
+          "type": "fact",
+          "created_at": "2026-06-13T10:00:00+00:00",
+          "updated_at": "2026-06-13T10:00:00+00:00",
+          "last_used_at": null,
+          "use_count": 0,
+          "confidence": 0.75,
+          "importance": 0.65,
+          "decay_rate": 0.01,
+          "expires_at": null
+        }
+      ],
+      "scratchpad_decisions": [
+        {
+          "text": "Memory is not cited as retrieval evidence",
+          "type": "decision",
+          "created_at": "2026-06-13T10:00:00+00:00",
+          "updated_at": "2026-06-13T10:00:00+00:00",
+          "last_used_at": null,
+          "use_count": 0,
+          "confidence": 0.75,
+          "importance": 0.9,
+          "decay_rate": 0.001,
+          "expires_at": null
+        }
+      ],
+      "scratchpad_open_questions": [
+        {
+          "text": "Should memory influence retrieval expansion?",
+          "type": "open_question",
+          "created_at": "2026-06-13T10:00:00+00:00",
+          "updated_at": "2026-06-13T10:00:00+00:00",
+          "last_used_at": null,
+          "use_count": 0,
+          "confidence": 0.75,
+          "importance": 0.75,
+          "decay_rate": 0.02,
+          "expires_at": null
+        }
+      ]
     },
     "updated_at": "..."
   }
 }
 ```
 
-The `MemoryManager` sanitizes preference keys, text fields, and list items. In stateful mode, it loads existing memory for the `user_id`, merges it with current request memory, and optionally saves each bucket independently.
+The `MemoryManager` sanitizes preference keys, text fields, and list items. In stateful mode, it loads existing memory for the `user_id`, merges it with current request memory, optionally saves each bucket independently, filters expired scratchpad items, ranks scratchpad items, and reinforces items that are reused.
 
 The final answer prompt receives a personalization block with strict boundaries:
 
@@ -134,6 +216,7 @@ The pipeline trace also shows memory details in the context-building step.
 - Memory does not yet have consent workflows, deletion APIs, TTLs, or audit history.
 - Personalization is not used to improve retrieval ranking.
 - Intent/topic memory is user-provided; it is not automatically inferred from every turn yet.
+- Time-dependent scoring currently applies to scratchpad memory, not style preferences or conversation summaries.
 
 ## Next Improvements
 
@@ -142,4 +225,6 @@ The pipeline trace also shows memory details in the context-building step.
 - Move production memory to a database with encryption at rest.
 - Add optional LLM-assisted conversation summarization and intent extraction.
 - Add preference extraction from conversation turns with human confirmation.
+- Add UI controls for per-item expiry, confidence, and importance.
+- Add explicit "resolved" state for open questions.
 - Add tests that evaluate whether personalization changes style without changing factual grounding.

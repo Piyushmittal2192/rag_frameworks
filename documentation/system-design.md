@@ -29,7 +29,7 @@ flowchart TD
 - CLI: supports ingestion and command-line question answering.
 - Pipeline core: implements Standard, Corrective, and Planner RAG.
 - VectorStore: persists chunks, dense vectors, and BM25 state.
-- MemoryManager: builds stateless or stateful preference, conversation, and scratchpad memory context for answer generation.
+- MemoryManager: builds stateless or stateful preference, conversation, and scratchpad memory context for answer generation. It also ranks stateful scratchpad items using confidence, importance, use count, expiry, and time decay.
 - LLM adapters: support Ollama, OpenAI-compatible servers, GitHub Models, and Echo demo mode.
 - Judge: optionally evaluates answer faithfulness against retrieved context.
 
